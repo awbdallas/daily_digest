@@ -2,15 +2,17 @@
 
 import configparser
 import datetime
-import lib.hn as hn
-import lib.reddit as reddit
 import os
 import smtplib
 import sys
 
-from tabulate import tabulate
+import lib.hn as hn
+import lib.reddit as reddit
+import lib.calendarvim as calendarvim
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from tabulate import tabulate
 
 def main():
     config = get_config_options()
@@ -38,7 +40,7 @@ def build_hn_message():
 
 
 def build_reddit_message(config):
-    table_headers = ['Subreddit', 'Link', 'Link to Post']
+    table_headers = ['Subreddit', 'URL', 'Post URL']
     table_data = []
     r = reddit.Reddit(
         config['Reddit']['cid'],
@@ -60,21 +62,73 @@ def build_reddit_message(config):
     return tabulate(table_data, table_headers, tablefmt='html')
 
 
+def build_from_events(config):
+    calendar = calendarvim.CalendarVim(
+        config['Calendar']['calendar_folder']
+    )
+    today = datetime.date.today()
+    calendar_events = calendar.get_events_for_day(today)
+
+    table_headers = ['Calendar', 'Event', 'Time Start', 'Time End']
+    table_data = []
+
+    for calendar in calendar_events:
+        if len(calendar_events[calendar]) == 0:
+            continue
+        for event in calendar_events[calendar]:
+            start_time = "{:02d}:{:02d}".format(event.start.hour, event.start.second)
+            end_time = "{:02d}:{:02d}".format(event.end.hour, event.end.second)
+            table_data.append([
+                calendar.summary,
+                event.summary,
+                start_time,
+                end_time
+           ])
+
+    return tabulate(table_data, table_headers, tablefmt='html')
+
+
+def build_email_message(config):
+    pass
+
+
 def build_email(config):
     msg = """\
     <html>
-        <head></heady>
+        <head>Daily Digest</heady>
         <body>
-    Hello,
+    <style>
+    table, td, th {{
+        border: 1px solid black;
 
+    }}
+
+    table {{
+        border-collapse: collapse;
+            width: 100%;
+
+    }}
+
+    th {{
+        height: 50px;
+
+    }}
+    </style>
+    Hello,
+    <br />
+    Calendar:
+    {calendar}
+    <br />
     HN:
     {hn}
-
+    <br />
     Reddit:
     {reddit}
+
     </body>
 </html>
-""".format(hn=build_hn_message(), reddit=build_reddit_message(config))
+""".format(calendar=build_from_events(config)
+           ,hn=build_hn_message(), reddit=build_reddit_message(config))
     return msg
 
 
