@@ -1,0 +1,6 @@
+Rough Idea of what I'm planning to do
+
+1) Figure out what sites I want to aggregate data from (reddit/hacker news)
+2) Figure out how much data I want to get. (Amount or keywords?)
+3) Figure out how to scrape it (reddit has an api, so does Hacker news)
+4) Figure out what the email should look like
