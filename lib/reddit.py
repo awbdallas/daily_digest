@@ -78,4 +78,4 @@ class Reddit(object):
     def get_user_subreddits(self):
         """Gives an instance of each subreddit...well of reddit base, but yeah"""
         assert self.reddit
-        return [subreddit for subreddit in self.user.subreddits()]
+        return [subreddit for subreddit in self.reddit.user.subreddits()]
