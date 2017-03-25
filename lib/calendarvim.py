@@ -10,6 +10,13 @@ class CalendarVim():
     """ Used for parsing calendar.vim directories """
 
     def __init__(self, calendar_folder_path):
+        """
+        Purpose: Setting up Calendar Vim Object. This includes loading the calendars
+        which in turn sets up the events.
+        PArameters: Path to the calendar.vim folder that we're assuming is
+        setup correctly.
+        Returns CalendarVim object
+        """
         if not os.path.exists(calendar_folder_path):
             print('Calendar folder does not exist')
             sys.exit(0)
@@ -20,13 +27,13 @@ class CalendarVim():
 
     def load_calendar(self):
         """
+        Purpose:
+        Returns: Nothing, but populates calendar
         Layout (as far as I can tell) is something like
         calendar.vim/local/calendarList <-- gives us calendar lists
         calendar.vim/local/event/{calendar.id}/year/month/0
         ^ actual events
 
-        This method should load all of those files, and return a list of
-        calendars. Those calendars should have lists of events
         """
         calendar_list_file = self.calendar_folder + '/local/calendarList'
 
@@ -49,6 +56,16 @@ class CalendarVim():
         self.populate_calendars()
 
     def populate_calendars(self):
+        """
+        Purpose: Populate vim calendars with events
+        Parameters: None
+        Returns: Nothing, but self.calendars.events should be populated
+        Notes:
+            Was noted before, but events are stored as dicts in files, that's
+            why os.walk is used to look for files and then literal_evaled. Also worth noting
+            you should be really careful about what ends up in calendar_Vim folders because
+            of the literal eveal
+        """
         if len(self.calendars) == 0:
             print('Either no calendars or not loaded.')
             sys.exit(0)
@@ -74,12 +91,25 @@ class CalendarVim():
                     for event in events_dict['items']:
                         calendar.add_event(event)
 
-    def get_events_for_day(self, day):
+    def get_events_for_day(self, day, forecast=None):
+        """
+        Purpose: Collect all events for all calendars.
+        Returns: Dict of calendars as keys with list of events as values
+        parameters: days and optionally a number of days as forecast
+        """
         holding_dict = {}
 
+        if not isinstance(forecast, int):
+            raise TypeError("forecast must be type int")
+        if not isinstance(day, datetime.date):
+            raise TypeError("Expecting datetime.date")
+
         for calendar in self.calendars:
-            holding_dict[calendar] = calendar.get_events_for_day(day)
-            
+            if forecast:
+                holding_dict[calendar] = calendar.get_events_for_day(day)
+            else:
+                holding_dict[calendar] = calendar.get_events_for_day(day, forecast=forecast)
+
         return holding_dict
 
 
@@ -87,27 +117,51 @@ class Calendar():
     """Calendars for calendar.vim."""
 
     def __init__(self, setup_dict):
-        # something tells me this is a bad idea.
+        """
+        Purpose: Setup a calendar object
+        Parameters: setup_dict which is a bunch of keys that are taken from
+        the calendarList file. The biggest ones are id and summary
+        returns object
+        """
         for key in setup_dict:
             setattr(self, key, setup_dict[key])
         self.events = []
 
     def add_event(self, setup_dict):
+        "Add events to calendar with setup dict of the event"
         self.events.append(Events(setup_dict))
 
-    # get events for a day
-    def get_events_for_day(self, day):
+    def get_events_for_day(self, day, forecast=None):
+        """
+        Purpose: Get all events for a calendar for a date and forecase if
+        specified.
+        Parameters: day should be a datetime
+        Returns: List of events for that day
+        """
         returning_events = []
 
         for event in self.events:
-            start = datetime.date(event.start.year, event.start.month,
-                                    event.start.day)
-            end = datetime.date(event.end.year, event.end.month,
-                                event.end.day)
-            if day >= start and day <= end:
+            if forecast:
+                event_days = self._get_date_range(event.start,
+                    event.end + datetime.timedelta(days=forecast))
+            else:
+                event_days = self._get_date_range(event.start, event.end)
+            if day in event_days:
                 returning_events.append(event)
-
         return returning_events
+
+    def _get_date_range(self, day_one, day_two):
+        """
+        Purpose: Giving a range of datetimes mostly to check if it's in it
+        Parameters: Day should be a datetime
+        Returns: List of datetimes between day_two and day_one
+        """
+        returning_list = []
+        delta = day_two - day_one
+
+        for x in range(delta.days):
+            returning_list.append(day_one.date() + datetime.timedelta(days=x))
+        return returning_list
 
 
 class Events():

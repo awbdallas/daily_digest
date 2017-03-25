@@ -67,7 +67,12 @@ def build_from_events(config):
         config['Calendar']['calendar_folder']
     )
     today = datetime.date.today()
-    calendar_events = calendar.get_events_for_day(today)
+    forecast_days = config.getint('Calendar', 'forecast_days')
+    if forecast_days:
+        calendar_events = calendar.get_events_for_day(today,
+            forecast=forecast_days)
+    else:
+        calendar_events = calendar.get_events_for_day(today)
 
     table_headers = ['Calendar', 'Event', 'Time Start', 'Time End']
     table_data = []
@@ -93,6 +98,7 @@ def build_email_message(config):
 
 
 def build_email(config):
+    # NOTE: double up all {  } otherwise you'll get a keyerror from format
     msg = """\
     <html>
         <head>Daily Digest</heady>
