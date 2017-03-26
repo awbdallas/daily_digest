@@ -120,15 +120,14 @@ def build_email(config):
 
     }}
     </style>
-    Hello,
     <br />
-    Calendar:
+    <b>Calendar:</b>
     {calendar}
     <br />
-    HN:
+    <b> HN: </b>
     {hn}
     <br />
-    Reddit:
+    <b>Reddit:</b>
     {reddit}
 
     </body>

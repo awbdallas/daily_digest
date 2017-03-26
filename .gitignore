@@ -1,2 +1,4 @@
 resources/config.config
 lib/__pycache__/
+tags
+lib/tags

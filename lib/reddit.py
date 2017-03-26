@@ -4,6 +4,11 @@ import prawcore
 class Reddit(object):
     """Basically just a small wrapper for what we want around praw"""
     def __init__(self, cid, cis, cpass, cua, cuser):
+        """
+        Purpose: Get a praw instance of reddit
+        Returns: nothing. Just populates self.reddit
+        Parameter: All the fields needed to create a reddit instance
+        """
         try:
             self.reddit = praw.Reddit(
                 client_id=cid,
@@ -20,6 +25,7 @@ class Reddit(object):
             print('Failure during login')
 
     def get_subreddit(self, subreddit):
+        """Get a subreddit. Just need a string name"""
         assert self.reddit
         try:
             sub = self.reddit.get_subreddit(subreddit, fetch=True)
@@ -28,6 +34,12 @@ class Reddit(object):
             print('Error getting subreddit {}'.format(subreddit))
 
     def get_subreddit_hot(self, subreddit, number_of_posts=5):
+        """
+        Purpose: Get a subreddits posts for hot
+        Parameters: self, subreddit instance, and a number of posts
+        Returns: Number of posts based on numbers that's passed
+        That wont include stickied posts
+        """
         assert self.reddit
 
         if isinstance(subreddit, str):
@@ -48,10 +60,16 @@ class Reddit(object):
                 )
             return posts
         else:
-            raise TypeError('{} invalid type. Must be str or subreddit'.format(type(subreddit)))
+            raise TypeError('{} invalid type. Must be str or subreddit'\
+                    .format(type(subreddit)))
 
     def get_subreddit_alltime(self, subreddit, number_of_posts=5):
-        # checking if name or if by type isntance
+        """
+        Purpose: Get a subreddits posts for all time
+        Parameters: self, subreddit instance, and a number of posts
+        Returns: Number of posts based on numbers that's passed
+        That wont include stickied posts
+        """
         assert self.reddit
 
         if isinstance(subreddit, str):
@@ -73,9 +91,15 @@ class Reddit(object):
                 )
             return posts
         else:
-            raise TypeError('{} is wrong type for this'.format(type(subreddit)))
+            raise TypeError('{} is wrong type for this'\
+                    .format(type(subreddit)))
 
     def get_user_subreddits(self):
-        """Gives an instance of each subreddit...well of reddit base, but yeah"""
+        """
+        Purpose: Need users subreddits
+        Parameters: Self
+        Returns: subreddit instance of every self-subscribed subreddits
+        (doesn't include default subreddits)
+        """
         assert self.reddit
         return [subreddit for subreddit in self.reddit.user.subreddits()]
