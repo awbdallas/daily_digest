@@ -40,7 +40,7 @@ def build_hn_message():
 
 
 def build_reddit_message(config):
-    table_headers = ['Subreddit', 'URL', 'Post URL']
+    table_headers = ['Post Title', 'Subreddit', 'URL', 'Post URL']
     table_data = []
     r = reddit.Reddit(
         config['Reddit']['cid'],
@@ -54,6 +54,7 @@ def build_reddit_message(config):
         posts = r.get_subreddit_hot(subreddit, number_of_posts=3)
         for post in posts:
             table_data.append([
+                post.title,
                 subreddit.display_name,
                 post.url,
                 post.shortlink
@@ -62,43 +63,10 @@ def build_reddit_message(config):
     return tabulate(table_data, table_headers, tablefmt='html')
 
 
-def build_from_events(config):
-    calendar = calendarvim.CalendarVim(
-        config['Calendar']['calendar_folder']
-    )
-    today = datetime.date.today()
-    forecast_days = config.getint('Calendar', 'forecast_days')
-    if forecast_days:
-        calendar_events = calendar.get_events_for_day(today,
-            forecast=forecast_days)
-    else:
-        calendar_events = calendar.get_events_for_day(today)
-
-    table_headers = ['Calendar', 'Event', 'Time Start', 'Time End']
-    table_data = []
-
-    for calendar in calendar_events:
-        if len(calendar_events[calendar]) == 0:
-            continue
-        for event in calendar_events[calendar]:
-            start_time = "{:02d}:{:02d}".format(event.start.hour, event.start.second)
-            end_time = "{:02d}:{:02d}".format(event.end.hour, event.end.second)
-            table_data.append([
-                calendar.summary,
-                event.summary,
-                start_time,
-                end_time
-           ])
-
-    return tabulate(table_data, table_headers, tablefmt='html')
-
-
-def build_email_message(config):
-    pass
-
-
 def build_email(config):
     # NOTE: double up all {  } otherwise you'll get a keyerror from format
+    calendar = calendarvim.CalendarVim(config['Calendar']['calendar_folder'],
+            config.getint('Calendar', 'forecast_days'))
     msg = """\
     <html>
         <head>Daily Digest</heady>
@@ -132,8 +100,8 @@ def build_email(config):
 
     </body>
 </html>
-""".format(calendar=build_from_events(config)
-           ,hn=build_hn_message(), reddit=build_reddit_message(config))
+""".format(calendar=calendar.get_digest(),
+        hn=build_hn_message(), reddit=build_reddit_message(config))
     return msg
 
 
