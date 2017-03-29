@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import configparser
 import datetime
 import os
@@ -22,21 +21,6 @@ def main():
 def send_digest_email(config):
     msg = build_email(config)
     send_email(config, msg)
-
-
-def build_hn_message():
-    posts = hn.get_posts()
-    hn_link = 'https://news.ycombinator.com/item?id='
-    table_headers = ['Post', 'Link to source', 'Link To Comments']
-    table_data = []
-
-    for post in posts:
-        table_data.append([
-            post['title'],
-            post['url'],
-            hn_link + str(post['id'])
-        ])
-    return tabulate(table_data, table_headers, tablefmt='html')
 
 
 def build_reddit_message(config):
@@ -67,6 +51,8 @@ def build_email(config):
     # NOTE: double up all {  } otherwise you'll get a keyerror from format
     calendar = calendarvim.CalendarVim(config['Calendar']['calendar_folder'],
             config.getint('Calendar', 'forecast_days'))
+    hacker_news = hn.HN()
+
     msg = """\
     <html>
         <head>Daily Digest</heady>
@@ -101,7 +87,7 @@ def build_email(config):
     </body>
 </html>
 """.format(calendar=calendar.get_digest(),
-        hn=build_hn_message(), reddit=build_reddit_message(config))
+        hn=hacker_news.get_digest(), reddit=build_reddit_message(config))
     return msg
 
 

@@ -25,10 +25,10 @@ class CalendarVim(Source_Interface):
             print('Calendar folder does not exist')
             sys.exit(0)
         else:
-            self.__calendar_folder = calendar_folder_path
-            self.__calendars = []
-            self.__load_calendar()
-            self.__forecast_days = forecast_days
+            self._calendar_folder = calendar_folder_path
+            self._calendars = []
+            self._load_calendar()
+            self._forecast_days = forecast_days
 
     def get_digest(self):
         """Hopefully this is the only real method that's used """
@@ -36,21 +36,23 @@ class CalendarVim(Source_Interface):
         table_data = []
 
         today = datetime.date.today()
-        calendar_events = self.__get_events_for_day(today)
+        calendar_events = self._get_events_for_day(today)
+        try:
+            for calendar in calendar_events:
+                for event in calendar_events[calendar]:
+                    # reoccuring event, so it's today
+                    table_data.append([
+                        calendar.summary,
+                        event.summary,
+                        event.start,
+                        event.end,
+                   ])
 
-        for calendar in calendar_events:
-            for event in calendar_events[calendar]:
-                # reoccuring event, so it's today
-                table_data.append([
-                    calendar.summary,
-                    event.summary,
-                    event.start,
-                    event.end,
-               ])
+            return tabulate(table_data, table_headers, tablefmt='html')
+        except:
+            return "Error getting Reddit digest"
 
-        return tabulate(table_data, table_headers, tablefmt='html')
-
-    def __load_calendar(self):
+    def _load_calendar(self):
         """
         Purpose:
         Returns: Nothing, but populates calendar
@@ -60,7 +62,7 @@ class CalendarVim(Source_Interface):
         ^ actual events
 
         """
-        calendar_list_file = self.__calendar_folder + '/local/calendarList'
+        calendar_list_file = self._calendar_folder + '/local/calendarList'
 
         if not os.path.isfile(calendar_list_file):
             print('Unable to find calendarList. May be no entries')
@@ -76,27 +78,27 @@ class CalendarVim(Source_Interface):
             sys.exit(0)
 
         for calendar in calendar_list_dict['items']:
-            self.__calendars.append(self.Calendar(calendar))
+            self._calendars.append(self.Calendar(calendar))
 
-        self.__populate_calendars()
+        self._populate_calendars()
 
-    def __populate_calendars(self):
+    def _populate_calendars(self):
         """
         Purpose: Populate vim calendars with events
         Parameters: None
-        Returns: Nothing, but __self.calendars.events should be populated
+        Returns: Nothing, but _self.calendars.events should be populated
         Notes:
             Was noted before, but events are stored as dicts in files, that's
             why os.walk is used to look for files and then literal_evaled. Also worth noting
             you should be really careful about what ends up in calendar_Vim folders because
             of the literal eveal
         """
-        if len(self.__calendars) == 0:
+        if len(self._calendars) == 0:
             print('Either no calendars or not loaded.')
             sys.exit(0)
 
-        for calendar in self.__calendars:
-            calendar_path = self.__calendar_folder +\
+        for calendar in self._calendars:
+            calendar_path = self._calendar_folder +\
                     '/local/event/{}/'.format(calendar.id)
 
             # grabbed from: http://stackoverflow.com/a/19587581
@@ -119,7 +121,7 @@ class CalendarVim(Source_Interface):
                     for event in events_dict['items']:
                         calendar.add_event(event)
 
-    def __get_events_for_day(self, day):
+    def _get_events_for_day(self, day):
         """
         Purpose: Collect all events for all calendars.
         Returns: Dict of calendars as keys with list of events as values
@@ -127,9 +129,9 @@ class CalendarVim(Source_Interface):
         """
         holding_dict = {}
 
-        for calendar in self.__calendars:
+        for calendar in self._calendars:
             holding_dict[calendar] = calendar.get_events_for_day(day,
-                        forecast=self.__forecast_days)
+                        forecast=self._forecast_days)
         return holding_dict
 
 

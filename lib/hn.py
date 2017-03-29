@@ -1,56 +1,110 @@
 import requests
 
 from json import loads
+from tabulate import tabulate
+from lib.source_interface import Source_Interface
 
-# API endpoint for hn.
-# can grab link to documentation here: https://github.com/HackerNews/API
-endpoint = 'https://hacker-news.firebaseio.com/v0/'
 
-# Only really supporting stories
-request_type = [ 'newstories', 'topstories', 'beststories', 'jobstories',
-                'askstories', 'showstories']
+class HN(Source_Interface):
+    """HN REST API documenation can be found here: https://github.com/HackerNews/API"""
 
-required_item_fields = [
-    'id', 'title', 'url'
-]
 
-def get_posts(passed_type='topstories', number_of=5):
-    """
-    Purpose:
-    Parameters: What I'm trying to get storie wise. This is checked against
-    request_type type. Also added is number of stories to get.
-    Returns a list of dicts of things like ids and such that are returned
-    Refer to api documentation for rough idea of what it will have
-    """
-    if not number_of in range(1, 500):
-        raise ValueError("Number should be in range of 1 to 100")
+    def __init__(self):
+        """
+        Few notes: I've been setting up trying to make everything in this class
+        private outside of get_digest for a reason. Not sure if it's the best design
+        idea, but I've extended that to object variables as well...awkward?
+        """
+        self._endpoint = 'https://hacker-news.firebaseio.com/v0/'
+        self._hn_link = 'https://news.ycombinator.com/item?id='
+        self._required_item_fields = [
+            'id', 'title', 'url'
+        ]
 
-    if passed_type in request_type:
-        response = requests.get(endpoint + passed_type + '.json')
+    def get_digest(self):
+        """
+        Purpose: get the best stories for hacker news
+        Parameters: number of stories is an optional argument
+        Returns: list of items
+        Special Notes: best_stories just return a json array of numbers
+        """
+        table_headers = ['Title', 'Url', 'Link to Post']
+        table_data = []
+
+        items = self._get_best_stories()
+        try:
+            for item in items:
+                table_data.append([
+                    item['title'],
+                    item['url'],
+                    self._hn_link + str(item['id'])
+                ])
+            return tabulate(table_data, table_headers, tablefmt='html')
+        except (RequestStoriesError, RequestItemError):
+            return 'Failed Requests for HN'
+        except (ResponseStoriesError, ResponseItemError):
+            return 'Failed Responses for HN'
+        except:
+            return 'Failed to get HN'
+
+    def _get_best_stories(self, number_of_stories=5):
+        """
+        Purpose: get the best stories for hacker news
+        Parameters: number of stories is an optional argument
+        Returns: list of items
+        Special Notes: best_stories just return a json array of numbers
+        """
+        response = requests.get(self._endpoint + 'beststories.json')
+
         if response.status_code != 200:
-            raise requests.exceptions.HTTPError("Failed stories request")
-        else:
-            json_response = loads(response.text)
-            items = json_response[:number_of]
-            urls = [endpoint + 'item/' + str(item) + '.json' for item in items]
+            raise RequestStoriesError('Failed Request for Stories')
+        json_response = loads(response.text)
+        if not isinstance(json_response, list) and len(json_response) > 0:
+            raise ResponseStoriesError('Failed Response to Stories')
 
-            try:
-                payload = []
-                for url in urls:
-                    holding_response  = requests.get(url)
-                    if holding_response.status_code != 200:
-                        raise requests.exceptions.HTTPError\
-                                ("Failed item request")
-                    holding_text = loads(holding_response.text)
-                    to_append = True
-                    for required_field in required_item_fields:
-                        if required_field not in holding_text.keys():
-                            to_append = False
-                            break
-                    if to_append:
-                        payload.append(holding_text)
-                return payload
-            except:
-                raise requests.exceptions.HTTPError("Error getting items")
-    else:
-        raise ValueError("Invalid Type of Request")
+        items = []
+        for item in json_response:
+            item = self._get_items(item)
+            if item:
+                items.append(item)
+            if len(items) == number_of_stories:
+                return items
+        return items
+
+    def _get_items(self, item, required_fields=None):
+        """
+        Purpose: Get items from requests
+        Parameters: item number
+        Returns: the item in dict format after checking for required_fields
+        """
+        if not required_fields:
+            required_fields = self._required_item_fields
+
+        url = self._endpoint + 'item/' + str(item) + '.json'
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            raise RequestItemError('Failed Request to Items')
+
+        item_dict = loads(response.text)
+        if len(item_dict) == 0 and isinstance(item_dict, dict):
+            raise RequestItemError('Failed response to Items')
+
+        for field in required_fields:
+            if not item_dict.get(field, None):
+                return None
+
+        return item_dict
+
+
+class RequestStoriesError(Exception):
+    pass
+
+class ResponseStoriesError(Exception):
+    pass
+
+class RequestItemError(Exception):
+    pass
+
+class ResponseItemError(Exception):
+    pass
