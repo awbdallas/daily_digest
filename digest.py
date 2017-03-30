@@ -23,9 +23,11 @@ def send_digest_email(config):
     send_email(config, msg)
 
 
-def build_reddit_message(config):
-    table_headers = ['Post Title', 'Subreddit', 'URL', 'Post URL']
-    table_data = []
+def build_email(config):
+    # NOTE: double up all {  } otherwise you'll get a keyerror from format
+    calendar = calendarvim.CalendarVim(config['Calendar']['calendar_folder'],
+            config.getint('Calendar', 'forecast_days'))
+    hacker_news = hn.HN()
     r = reddit.Reddit(
         config['Reddit']['cid'],
         config['Reddit']['csecret'],
@@ -33,25 +35,6 @@ def build_reddit_message(config):
         config['Reddit']['useragent'],
         config['Reddit']['username'],
     )
-    subreddits = r.get_user_subreddits()
-    for subreddit in subreddits:
-        posts = r.get_subreddit_hot(subreddit, number_of_posts=3)
-        for post in posts:
-            table_data.append([
-                post.title,
-                subreddit.display_name,
-                post.url,
-                post.shortlink
-            ])
-
-    return tabulate(table_data, table_headers, tablefmt='html')
-
-
-def build_email(config):
-    # NOTE: double up all {  } otherwise you'll get a keyerror from format
-    calendar = calendarvim.CalendarVim(config['Calendar']['calendar_folder'],
-            config.getint('Calendar', 'forecast_days'))
-    hacker_news = hn.HN()
 
     msg = """\
     <html>
@@ -87,7 +70,7 @@ def build_email(config):
     </body>
 </html>
 """.format(calendar=calendar.get_digest(),
-        hn=hacker_news.get_digest(), reddit=build_reddit_message(config))
+        hn=hacker_news.get_digest(), reddit=r.get_digest())
     return msg
 
 
