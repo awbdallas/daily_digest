@@ -1,7 +1,6 @@
 import sys
 import os
 import datetime
-import re
 
 from ast import literal_eval
 from dateutil import parser
@@ -10,12 +9,12 @@ from lib.source_interface import Source_Interface
 
 
 class CalendarVim(Source_Interface):
-    """ Used for parsing calendar.vim directories """
-
+    """Used for parsing calendar.vim directories"""
 
     def __init__(self, calendar_folder_path, forecast_days):
         """
-        Purpose: Setting up Calendar Vim Object. This includes loading the calendars
+        Purpose: Setting up Calendar Vim Object. This includes loading the
+        calendars
         which in turn sets up the events.
         PArameters: Path to the calendar.vim folder that we're assuming is
         setup correctly.
@@ -31,7 +30,7 @@ class CalendarVim(Source_Interface):
             self._forecast_days = forecast_days
 
     def get_digest(self):
-        """Hopefully this is the only real method that's used """
+        """Hopefully this is the only real method that's used"""
         table_headers = ['Calendar', 'Event', 'Date Start', 'Date End']
         table_data = []
 
@@ -45,12 +44,11 @@ class CalendarVim(Source_Interface):
                         calendar.summary,
                         event.summary,
                         event.start,
-                        event.end,
-                   ])
+                        event.end])
 
             return tabulate(table_data, table_headers, tablefmt='html')
         except:
-            return "Error getting Reddit digest"
+            return 'Error getting Reddit digest'
 
     def _load_calendar(self):
         """
@@ -130,10 +128,9 @@ class CalendarVim(Source_Interface):
         holding_dict = {}
 
         for calendar in self._calendars:
-            holding_dict[calendar] = calendar.get_events_for_day(day,
-                        forecast=self._forecast_days)
+            holding_dict[calendar] = calendar.get_events_for_day(
+                day, forecast=self._forecast_days)
         return holding_dict
-
 
     class Calendar():
         """Calendars for calendar.vim."""
@@ -161,18 +158,16 @@ class CalendarVim(Source_Interface):
             Returns: List of events for that day
             """
             returning_events = []
+            possible_days = self.get_date_range(
+                day, day + datetime.timedelta(days=forecast))
 
             for event in self.events:
-                possible_days = self.get_date_range(day,
-                        day + datetime.timedelta(days=forecast))
-                event_days = self.get_date_range(event.start,
-                    event.end + datetime.timedelta(days=forecast))
+                event_days = self.get_date_range(event.start, event.end)
 
                 for pday in possible_days:
                     if pday in event_days:
                         returning_events.append(event)
                         break
-
             return returning_events
 
         def get_date_range(self, day_one, day_two):
@@ -186,14 +181,13 @@ class CalendarVim(Source_Interface):
 
             for x in range(delta.days + 1):
                 if isinstance(day_one, datetime.datetime):
-                    returning_list.append(day_one.date() +\
-                            datetime.timedelta(days=x))
+                    returning_list.append(day_one.date() +
+                                          datetime.timedelta(days=x))
                 elif isinstance(day_one, datetime.date):
-                    returning_list.append(day_one +\
-                            datetime.timedelta(days=x))
+                    returning_list.append(day_one +
+                                          datetime.timedelta(days=x))
 
             return returning_list
-
 
     class Events():
         """Calendar events for calendar.vim."""
@@ -209,7 +203,8 @@ class CalendarVim(Source_Interface):
             for key in setup_dict:
                 if key == 'start' or key == 'end':
                     if setup_dict[key].get('date', None):
-                        setattr(self, key, parser.parse(setup_dict[key]['date']))
+                        setattr(self, key,
+                                parser.parse(setup_dict[key]['date']))
                     elif setup_dict[key].get('dateTime', None):
                         setattr(self, key,
                                 parser.parse(setup_dict[key]['dateTime']))

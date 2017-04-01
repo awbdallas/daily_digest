@@ -12,7 +12,7 @@ import lib.calendarvim as calendarvim
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from tabulate import tabulate
+
 
 def main():
     config = get_config_options()
@@ -26,8 +26,10 @@ def send_digest_email(config):
 
 def build_email(config):
     # NOTE: double up all {  } otherwise you'll get a keyerror from format
-    calendar = calendarvim.CalendarVim(config['Calendar']['calendar_folder'],
-            config.getint('Calendar', 'forecast_days'))
+    calendar = calendarvim.CalendarVim(
+        config['Calendar']['calendar_folder'],
+        config.getint('Calendar', 'forecast_days')
+    )
     hacker_news = hn.HN()
     r = reddit.Reddit(
         config['Reddit']['cid'],
@@ -71,7 +73,7 @@ def build_email(config):
     </body>
 </html>
 """.format(calendar=calendar.get_digest(),
-        hn=hacker_news.get_digest(), reddit=r.get_digest())
+           hn=hacker_news.get_digest(), reddit=r.get_digest())
     return msg
 
 
