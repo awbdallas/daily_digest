@@ -40,7 +40,7 @@ class Reddit(Source_Interface):
             table_data = []
             subreddits = self._get_user_subreddits()
             for subreddit in subreddits:
-                posts = self._get_subreddit_hot(subreddit)
+                posts = self._get_subreddit_time(subreddit)
                 for post in posts:
                     table_data.append([
                         post.title,
@@ -88,34 +88,23 @@ class Reddit(Source_Interface):
             raise TypeError('{} invalid type. Must be str or subreddit'\
                     .format(type(subreddit)))
 
-    def _get_subreddit_alltime(self, subreddit, number_of_posts=5):
+    def _get_subreddit_time(self, subreddit, number_of_posts=3, time='day'):
         """
         Purpose: Get a subreddits posts for all time
-        Parameters: self, subreddit instance, and a number of posts
+        Parameters: self, subreddit instance, number_of_posts, time
         Returns: Number of posts based on numbers that's passed
         That wont include stickied posts
         """
-        if isinstance(subreddit, str):
-            self._get_subreddit(subreddit)
-        elif isinstance(subreddit, praw.models.Subreddit):
-            # giving a buffer to account for stickied
-            posts = []
-
-            for submission in subreddit.top('all', limit=number_of_posts + 5):
-                if len(posts) == number_of_posts:
-                    break
-                elif submission.stickied:
-                    continue
-                else:
-                    posts.append(submission)
-            assert number_of_posts == len(posts),\
-                'Invalid amount of posts. Only {} out of {}'.format(
-                    number_of_posts, len(posts)
-                )
-            return posts
-        else:
-            raise TypeError('{} is wrong type for this'\
-                    .format(type(subreddit)))
+        posts = []
+        # giving a buffer to account for stickied
+        for submission in subreddit.top(time, limit=number_of_posts + 5):
+            if len(posts) == number_of_posts:
+                break
+            elif submission.stickied:
+                continue
+            else:
+                posts.append(submission)
+        return posts
 
     def _get_user_subreddits(self):
         """
